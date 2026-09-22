@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "profesia": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/AyQWERTY/profesia-mcp",
+        "profesia-mcp"
+      ]
+    }
+  }
+}

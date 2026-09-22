@@ -1,0 +1,20 @@
+[project]
+name = "profesia-mcp"
+version = "0.1.0"
+description = "MCP server exposing job search on profesia.sk (Slovak job board)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "curl-cffi>=0.16.3",
+    "fastmcp>=4.0.5",
+    "selectolax>=0.4.12",
+]
+
+[project.scripts]
+profesia-mcp = "profesia_mcp.__main__:main"
+
+[tool.uv]
+package = true
+
+[[tool.hatch.build.targets.wheel]]
+packages = ["src/profesia_mcp"]
