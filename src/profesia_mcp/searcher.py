@@ -357,9 +357,11 @@ class Profesia:
 
     # -- parsing helpers --------------------------------------------------
     def _parse_row(self, row: Any) -> Offer | None:
-        # Rows without an offer link are the "email subscription / search
-        # recap" footer, not a real job -- skip them.
-        link = row.css_first("a[href*='/praca/']")
+        # Prefer the offer anchor (id="offer{digits}"): a row's first
+        # /praca/ link can be the employer's logo link. Rows without an
+        # offer link are the "email subscription / search recap" footer,
+        # not a real job -- skip them.
+        link = row.css_first("a[id^='offer']") or row.css_first("a[href*='/praca/']")
         if link is None:
             return None
         href = link.attributes.get("href")
