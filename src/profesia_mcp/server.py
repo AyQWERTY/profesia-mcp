@@ -6,6 +6,8 @@ Tools
   markdown table of matching offers.
 * ``suggest_location`` -- resolve a city/region name to the concrete
   locations (with numeric ``region_id``) the search endpoint understands.
+* ``read_job`` -- read one offer's full details (by its URL from
+  ``search_jobs``) and return them as a markdown document.
 """
 
 from __future__ import annotations
@@ -24,7 +26,8 @@ mcp = FastMCP(
         "plus a Slovak city to search_jobs directly; it resolves the city "
         "automatically and reports which location it used. Only call "
         "suggest_location when a place name is ambiguous, then pass the exact "
-        "name (or its region_id) back to search_jobs."
+        "name (or its region_id) back to search_jobs. Use read_job with an "
+        "offer's URL (from search_jobs) to get its full details."
     ),
 )
 
@@ -106,6 +109,20 @@ def search_jobs(
             f"radius={radius_km}km, page {page}.\n"
         )
     return head + Profesia.to_markdown(offers)
+
+
+@mcp.tool(
+    description=(
+        "Read full details of a single job offer from its URL (the URL "
+        "column from search_jobs). Returns a markdown document: header "
+        "fields (employer, location, employment type, salary, published "
+        "date), badges, the full description/requirements text and the "
+        "company info block."
+    )
+)
+def read_job(url: str) -> str:
+    client = Profesia()
+    return client.get_offer(url).to_markdown()
 
 
 def main() -> None:

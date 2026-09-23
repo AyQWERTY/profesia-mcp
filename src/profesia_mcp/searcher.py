@@ -23,6 +23,7 @@ Search model (verified against the live site)
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -48,6 +49,43 @@ class Offer:
     # Relative posting time from the search results, e.g. "Pred 2 týždňami".
     posted: str | None = None
     extra: list[str] = field(default_factory=list)
+
+
+@dataclass
+class OfferDetail:
+    """Full detail-page data for a single job offer."""
+
+    title: str
+    employer: str
+    location: str
+    employment_type: str | None = None
+    salary: str | None = None
+    posted: str | None = None
+    badges: list[str] = field(default_factory=list)
+    # Rendered as whole blocks, not per-field data: unknown offer-specific sections must survive.
+    description: str = ""
+    company: str = ""
+
+    def to_markdown(self) -> str:
+        lines = [f"# {self.title}", ""]
+        meta = [
+            f"- **Employer:** {self.employer}",
+            f"- **Location:** {self.location}",
+        ]
+        if self.employment_type:
+            meta.append(f"- **Employment type:** {self.employment_type}")
+        if self.salary:
+            meta.append(f"- **Salary:** {self.salary}")
+        if self.posted:
+            meta.append(f"- **Published:** {self.posted}")
+        if self.badges:
+            meta.append(f"- **Badges:** {'; '.join(self.badges)}")
+        lines += meta + [""]
+        if self.description:
+            lines += ["## Description", "", self.description, ""]
+        if self.company:
+            lines += ["## Company", "", self.company, ""]
+        return "\n".join(lines).rstrip()
 
 
 @dataclass
@@ -78,6 +116,67 @@ def _strip_search_id(url: str) -> str:
         (k, v) for k, v in parse_qsl(query, keep_blank_values=True) if k != "search_id"
     ]
     return urlunsplit((scheme, netloc, path, urlencode(clean), fragment))
+
+
+BLOCK_TAGS = {"div", "p", "ul", "ol", "table"}
+
+
+def _render_children(node: Any, out: list[str]) -> None:
+    """Flatten one element subtree into readable text (in place into ``out``).
+
+    h3/h4 become bold labels, ``li`` items become bullets, ``br`` becomes a
+    line break, and every block-level element ends with a newline; anything
+    else is recursed, so offer-specific sections we don't know about are kept
+    intact.
+    """
+    child = node.first_child
+    while child is not None:
+        if child.is_text_node:
+            out.append(child.text() or "")
+        elif child.tag == "br":
+            out.append("\n")
+        elif child.tag in ("h3", "h4"):
+            out.append(f"\n\n**{(child.text() or '').strip()}**\n")
+        elif child.tag == "li":
+            out.append(f"- {(child.text() or '').strip()}\n")
+        elif child.tag in ("script", "style"):
+            pass
+        else:
+            _render_children(child, out)
+            if child.tag in BLOCK_TAGS:
+                out.append("\n")
+        child = child.next
+
+
+def _overall_info_value(main: Any, label: str) -> str | None:
+    """Read a value from the Slovak meta block ``.overall-info``.
+
+    That block is always rendered in Slovak, so ``label`` (e.g.
+    ``"Spoločnosť:"``) is stable even when the offer page is served in
+    another language.
+    """
+    ov = main.css_first(".overall-info")
+    if ov is None:
+        return None
+    for strong in ov.css("strong"):
+        if not (strong.text() or "").startswith(label):
+            continue
+        nxt = strong.next
+        while nxt is not None and nxt.is_text_node and not (nxt.text() or "").strip():
+            nxt = nxt.next
+        if nxt is not None:
+            return (nxt.text() or "").strip() or None
+    return None
+
+
+def _render_section(node: Any) -> str:
+    """Render one ``details-section`` subtree into clean plain text."""
+    out: list[str] = []
+    _render_children(node, out)
+    text = "".join(out)
+    text = re.sub(r"[ \t]*\n[ \t]*", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 class ProfesiaError(RuntimeError):
@@ -194,6 +293,67 @@ class Profesia:
             if offer is not None:
                 offers.append(offer)
         return offers
+
+    def get_offer(self, url: str) -> OfferDetail:
+        """Fetch one offer detail page and parse its content.
+
+        ``url`` is the offer URL from :meth:`search`.
+        """
+        resp = self._session.get(url, timeout=self._timeout)
+        if resp.status_code != 200:
+            raise ProfesiaError(f"offer page failed (status {resp.status_code})")
+        doc = LexborHTMLParser(resp.text)
+        main = doc.css_first("main#detail")
+        if main is None:
+            raise ProfesiaError("offer detail page not found (main#detail missing)")
+
+        # The site serves multiple templates (plain, itemprop-less, and
+        # employer custom designs), so each field lists fallbacks below.
+        def text_of(*selectors: str) -> str | None:
+            for css in selectors:
+                node = main.css_first(css)
+                if node is not None:
+                    text = (node.text() or "").strip()
+                    if text:
+                        return text
+            return None
+
+        badges: list[str] = []
+        for lab in doc.css("#content .label-bordered"):
+            text = (lab.text() or "").strip()
+            if text:
+                badges.append(text)
+
+        description_sections: list[Any] = []
+        company_sections: list[Any] = []
+        # The three ``details-section`` blocks live inside main; the company
+        # block is a sibling of the description container, not inside it.
+        for sec in main.css(".details-section"):
+            if "company-info" in (sec.attributes.get("class") or ""):
+                company_sections.append(sec)
+            else:
+                description_sections.append(sec)
+
+        return OfferDetail(
+            title=text_of("h1[itemprop='title']", "h1") or "",
+            employer=(
+                text_of("h2[itemprop='hiringOrganization']")
+                or _overall_info_value(main, "Spoločnosť:")
+                or text_of("h2")
+            )
+            or "",
+            location=(
+                text_of("span[itemprop='jobLocation']", "span[itemprop='address']")
+                or _overall_info_value(main, "lokalita:")
+            )
+            or "",
+            employment_type=text_of("span[itemprop='employmentType']"),
+            salary=text_of("span.salary-range"),
+            posted=text_of("span[itemprop='datePosted']"),
+            badges=badges,
+            description="\n\n".join(_render_section(s) for s in description_sections),
+            company="\n\n".join(_render_section(s) for s in company_sections),
+        )
 
     # -- parsing helpers --------------------------------------------------
     def _parse_row(self, row: Any) -> Offer | None:

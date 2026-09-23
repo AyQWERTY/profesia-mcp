@@ -34,6 +34,25 @@ A markdown table, one row per offer, preceded by a summary line (offer count, th
 </details>
 
 <details>
+<summary><code>read_job</code></summary>
+
+Reads the full details of a single offer by its URL (the `URL` column from `search_jobs`). Returns a markdown document.
+
+**Inputs**
+
+- `url` (string, required): the offer URL from `search_jobs` (e.g. `https://www.profesia.sk/praca/jmt-trans/O5347750`).
+
+**Output**
+
+A markdown document:
+
+- `# {title}` header, then a bullet list: employer, location, employment type, salary, published date, and all badges (semicolon-joined). Optional fields are omitted when the offer doesn't have them.
+- `## Description` -- the whole job-info/requirements block as rendered on the page (job description, benefits, and whatever requirement subsections the offer defines).
+- `## Company` -- the whole advertiser block (company description, employee count, contact person).
+
+</details>
+
+<details>
 <summary><code>suggest_location</code></summary>
 
 Resolves a city or region name into the concrete locations the search endpoint understands.
