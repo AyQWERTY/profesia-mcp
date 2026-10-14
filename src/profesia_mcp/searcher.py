@@ -343,13 +343,25 @@ class Profesia:
 
         description_sections: list[Any] = []
         company_sections: list[Any] = []
-        # The three ``details-section`` blocks live inside main; the company
-        # block is a sibling of the description container, not inside it.
+        # The company block is a sibling of the description container.
         for sec in main.css(".details-section"):
             if "company-info" in (sec.attributes.get("class") or ""):
                 company_sections.append(sec)
-            else:
-                description_sections.append(sec)
+
+        # ``.maintextearea`` wraps the detail content on employer custom templates
+        # (and mixed pages like KFC). Plain offers have no such wrapper, so their
+        # description lives directly in the ``.details-section`` blocks -- which
+        # carry only the text, not the location / employment-type / salary meta we
+        # already read from other fields.
+        custom = main.css_first(".maintextearea")
+        if custom is not None:
+            description_sections.append(custom)
+        else:
+            description_sections = [
+                sec
+                for sec in main.css(".details-section")
+                if "company-info" not in (sec.attributes.get("class") or "")
+            ]
 
         return OfferDetail(
             title=text_of("h1[itemprop='title']", "h1") or "",
@@ -365,7 +377,8 @@ class Profesia:
             )
             or "",
             employment_type=text_of("span[itemprop='employmentType']"),
-            salary=text_of("span.salary-range"),
+            salary=text_of("span.salary-range")
+            or _overall_info_value(main, "Základná zložka mzdy (brutto):"),
             posted=text_of("span[itemprop='datePosted']"),
             badges=badges,
             description="\n\n".join(_render_section(s) for s in description_sections),
