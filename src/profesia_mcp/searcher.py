@@ -272,7 +272,6 @@ class Profesia:
         keyword: str,
         region_id: str | None = None,
         radius_km: int | None = None,
-        sort_by: str = "relevance",
         page: int = 1,
     ) -> list[Offer]:
         """Search jobs, optionally scoped to one location.
@@ -284,7 +283,6 @@ class Profesia:
         """
         params = {
             "search_anywhere": keyword,
-            "sort_by": sort_by,
             "page_num": page,
         }
         if region_id is not None:
