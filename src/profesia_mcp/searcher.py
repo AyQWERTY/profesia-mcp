@@ -37,6 +37,7 @@ BASE_URL = "https://www.profesia.sk"
 # The fixed radius buckets the site understands (km).
 AVAILABLE_RADIUS_KM = [0, 10, 20, 30, 60, 100]
 DEFAULT_RADIUS_KM = 30
+MAX_RADIUS_KM = max(AVAILABLE_RADIUS_KM)
 
 
 @dataclass

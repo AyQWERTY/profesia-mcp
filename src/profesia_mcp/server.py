@@ -16,7 +16,7 @@ import json
 
 from fastmcp import FastMCP
 
-from .searcher import DEFAULT_RADIUS_KM, Profesia
+from .searcher import DEFAULT_RADIUS_KM, MAX_RADIUS_KM, Profesia
 
 mcp = FastMCP(
     name="profesia-mcp",
@@ -101,6 +101,11 @@ def search_jobs(
     radius_km: int = DEFAULT_RADIUS_KM,
     page: int = 1,
 ) -> str:
+    if page < 1:
+        raise ValueError("page must be a positive integer")
+    if not 0 <= radius_km <= MAX_RADIUS_KM:
+        raise ValueError(f"radius_km must be between 0 and {MAX_RADIUS_KM}")
+
     rid, where = region_id, None
     if city is not None:
         # A place name takes precedence over an explicit region_id.
