@@ -57,7 +57,14 @@ def _resolve_region_id(client: Profesia, city: str) -> tuple[str, str]:
         "Returns a JSON array of {region_id, name, region_type}. Pass a "
         "place name to search_jobs.city, or a region_id from here to "
         "search_jobs.region_id, to pin the exact location."
-    )
+    ),
+    annotations={
+        "title": "Suggest a location",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 def suggest_location(city: str) -> str:
     client = Profesia()
@@ -74,7 +81,14 @@ def suggest_location(city: str) -> str:
         "to pin the exact spot; omit both for a site-wide search. "
         "`radius_km` only applies with a location and snaps to "
         "0/10/20/30/60/100 (max 100). Returns a markdown table."
-    )
+    ),
+    annotations={
+        "title": "Search job offers",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 def search_jobs(
     keyword: str,
@@ -118,7 +132,14 @@ def search_jobs(
         "fields (employer, location, employment type, salary, published "
         "date), badges, the full description/requirements text and the "
         "company info block."
-    )
+    ),
+    annotations={
+        "title": "Read one job offer",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 def read_job(url: str) -> str:
     client = Profesia()
