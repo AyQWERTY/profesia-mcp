@@ -324,6 +324,19 @@ class Profesia:
         if main is None:
             raise ProfesiaError("offer detail page not found (main#detail missing)")
 
+        # Removed/expired offers are served with HTTP 200 and a banner instead of
+        # content; forward the site's own message rather than an empty offer.
+        notice = main.css_first(".alert-danger")
+        if notice is not None:
+            # Keep only the banner's own sentence, not the close button or the
+            # "Späť" link that sit inside it.
+            raw = notice.text() or ""
+            for chrome in (notice.css_first("button"), notice.css_first("a")):
+                if chrome is not None:
+                    raw = raw.replace(chrome.text() or "", "")
+            message = " ".join(raw.split())
+            raise ProfesiaError(message or "offer is no longer available")
+
         # The site serves multiple templates (plain, itemprop-less, and
         # employer custom designs), so each field lists fallbacks below.
         def text_of(*selectors: str) -> str | None:
