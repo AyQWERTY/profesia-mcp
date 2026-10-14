@@ -113,6 +113,11 @@ def snap_radius(km: int | None) -> str:
     return "radius" + str(min(AVAILABLE_RADIUS_KM, key=lambda r: abs(r - km)))
 
 
+def _md_cell(text: str | None) -> str:
+    """Make a value safe to place in a markdown table cell."""
+    return (text or "").replace("|", "\\|").replace("\n", " ").strip()
+
+
 def _strip_search_id(url: str) -> str:
     """Drop the ``search_id`` tracking param profesia.sk appends to links."""
     scheme, netloc, path, query, fragment = urlsplit(url)
@@ -420,8 +425,8 @@ class Profesia:
         lines = [header, sep]
         for o in jobs:
             lines.append(
-                f"| {o.title} | {o.employer} | {o.location} "
-                f"| {o.salary or ''} | {o.url or ''} "
-                f"| {o.posted or ''} | {'; '.join(o.extra)} |"
+                f"| {_md_cell(o.title)} | {_md_cell(o.employer)} | {_md_cell(o.location)} "
+                f"| {_md_cell(o.salary)} | {_md_cell(o.url)} "
+                f"| {_md_cell(o.posted)} | {_md_cell('; '.join(o.extra))} |"
             )
         return "\n".join(lines)
