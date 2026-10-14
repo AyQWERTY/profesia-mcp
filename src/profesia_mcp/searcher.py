@@ -221,9 +221,14 @@ class Profesia:
         self._token = token
         self._token_expires = datetime.now(UTC) + timedelta(minutes=25)
 
-    def _suggest_url(self, query: str) -> str:
+    def _suggest_request(self, query: str):
+        """Hit the suggest endpoint, letting the client url-encode ``q``."""
         self._ensure_token()
-        return f"{BASE_URL}/sk/regions/suggest?q={query}&limit=10&token={self._token}"
+        return self._session.get(
+            f"{BASE_URL}/sk/regions/suggest",
+            params={"q": query, "limit": 10, "token": self._token},
+            timeout=self._timeout,
+        )
 
     # -- public API -------------------------------------------------------
     def suggest_location(self, query: str) -> list[LocationSuggestion]:
@@ -234,11 +239,11 @@ class Profesia:
         """
         if not query.strip():
             return []
-        resp = self._session.get(self._suggest_url(query), timeout=self._timeout)
+        resp = self._suggest_request(query)
         if resp.status_code == 401:
             # Token expired/rotated -- refresh once and retry.
             self._token, self._token_expires = None, None
-            resp = self._session.get(self._suggest_url(query), timeout=self._timeout)
+            resp = self._suggest_request(query)
         if resp.status_code != 200:
             raise ProfesiaError(f"suggest endpoint failed (status {resp.status_code})")
         try:
