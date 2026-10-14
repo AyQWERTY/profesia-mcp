@@ -40,7 +40,7 @@ Reads the full details of a single offer by its URL (the `URL` column from `sear
 
 **Inputs**
 
-- `url` (string, required): the offer URL from `search_jobs` (e.g. `https://www.profesia.sk/praca/jmt-trans/O5347750`).
+- `url` (string, required): the offer URL from `search_jobs` (e.g. `https://www.profesia.sk/praca/jmt-trans/O5347750`). Only `https` URLs on `profesia.sk` are fetched.
 
 **Output**
 

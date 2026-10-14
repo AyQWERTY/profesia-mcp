@@ -33,6 +33,9 @@ from curl_cffi import requests
 from selectolax.lexbor import LexborHTMLParser
 
 BASE_URL = "https://www.profesia.sk"
+# Only these hosts may be fetched, so ``read_job`` cannot be used to make the
+# server request an arbitrary URL supplied by the caller.
+ALLOWED_HOSTS = frozenset({"www.profesia.sk", "profesia.sk"})
 
 # The fixed radius buckets the site understands (km).
 AVAILABLE_RADIUS_KM = [0, 10, 20, 30, 60, 100]
@@ -305,6 +308,11 @@ class Profesia:
 
         ``url`` is the offer URL from :meth:`search`.
         """
+        parts = urlsplit(url)
+        if parts.scheme != "https" or parts.netloc.lower() not in ALLOWED_HOSTS:
+            raise ProfesiaError(
+                f"only profesia.sk offer URLs are allowed (got {url!r})"
+            )
         resp = self._session.get(url, timeout=self._timeout)
         if resp.status_code != 200:
             raise ProfesiaError(f"offer page failed (status {resp.status_code})")
