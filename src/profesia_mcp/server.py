@@ -32,6 +32,11 @@ mcp = FastMCP(
 )
 
 
+# One client per process: the HTTP session and the anti-bot token are reused
+# across tool calls instead of being rebuilt on every request.
+_client = Profesia()
+
+
 def _resolve_region_id(client: Profesia, city: str) -> tuple[str, str]:
     """Resolve a place name to (region_id, resolved_name).
 
@@ -67,8 +72,7 @@ def _resolve_region_id(client: Profesia, city: str) -> tuple[str, str]:
     },
 )
 def suggest_location(city: str) -> str:
-    client = Profesia()
-    suggestions = client.suggest_location(city)
+    suggestions = _client.suggest_location(city)
     payload = [s.asdict() for s in suggestions]
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -97,16 +101,14 @@ def search_jobs(
     radius_km: int = DEFAULT_RADIUS_KM,
     page: int = 1,
 ) -> str:
-    client = Profesia()
-
     rid, where = region_id, None
     if city is not None:
         # A place name takes precedence over an explicit region_id.
-        rid, where = _resolve_region_id(client, city)
+        rid, where = _resolve_region_id(_client, city)
     elif rid is not None:
         where = f"region_id {rid}"
 
-    offers = client.search(
+    offers = _client.search(
         keyword=keyword,
         region_id=rid,
         radius_km=radius_km,
@@ -142,8 +144,7 @@ def search_jobs(
     },
 )
 def read_job(url: str) -> str:
-    client = Profesia()
-    return client.get_offer(url).to_markdown()
+    return _client.get_offer(url).to_markdown()
 
 
 def main() -> None:
