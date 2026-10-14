@@ -95,3 +95,7 @@ Use the config below in your MCP client's servers config. `uvx` installs and run
   }
 }
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
