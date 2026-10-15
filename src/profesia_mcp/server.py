@@ -20,7 +20,7 @@ from .searcher import DEFAULT_RADIUS_KM, MAX_RADIUS_KM, Profesia
 
 mcp = FastMCP(
     name="profesia-mcp",
-    version="0.2.1",
+    version="0.2.2",
     instructions=(
         "Search jobs on profesia.sk (Slovak job board). Usually pass keyword "
         "plus a Slovak city to search_jobs directly; it resolves the city "
