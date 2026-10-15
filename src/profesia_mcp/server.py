@@ -84,7 +84,8 @@ def suggest_location(city: str) -> str:
         "(resolved automatically) or a `region_id` from suggest_location "
         "to pin the exact spot; omit both for a site-wide search. "
         "`radius_km` only applies with a location and snaps to "
-        "0/10/20/30/60/100 (max 100). Returns a markdown table."
+        "0/10/20/30/60/100 (max 100). Returns a markdown table preceded by "
+        "the total number of offers matching the search."
     ),
     annotations={
         "title": "Search job offers",
@@ -113,22 +114,29 @@ def search_jobs(
     elif rid is not None:
         where = f"region_id {rid}"
 
-    offers = _client.search(
+    offers, total = _client.search(
         keyword=keyword,
         region_id=rid,
         radius_km=radius_km,
         page=page,
     )
 
-    if where is None:
-        head = (
-            f"Found {len(offers)} offer(s) for {keyword!r} (site-wide), page {page}.\n"
-        )
+    if total is None:
+        # No count rendered (typically zero results): the page itself is
+        # all we know.
+        count = f"Found {len(offers)} offer(s)"
+        tail = f", page {page}.\n"
     else:
-        head = (
-            f"Found {len(offers)} offer(s) for {keyword!r} near {where}, "
-            f"radius={radius_km}km, page {page}.\n"
+        count = (
+            f"Found {total:,} offer(s) matching the search "
+            f"(page {page} lists {len(offers)})"
         )
+        tail = ".\n"
+
+    if where is None:
+        head = f"{count} for {keyword!r} (site-wide){tail}"
+    else:
+        head = f"{count} for {keyword!r} near {where}, radius={radius_km}km{tail}"
     return head + Profesia.to_markdown(offers)
 
 

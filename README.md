@@ -19,7 +19,7 @@ Free-text job search by keyword, with an optional location and radius. Returns a
 
 **Output**
 
-A markdown table, one row per offer, preceded by a summary line (offer count, the location it was resolved to or \"site-wide\", radius, page).
+A markdown table, one row per offer, preceded by a summary line (total number of offers matching the search, the location it was resolved to or "site-wide", radius, page).
 
 | Column   | Example                                                  |
 | -------- | -------------------------------------------------------- |

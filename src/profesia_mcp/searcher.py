@@ -157,6 +157,27 @@ def _render_children(node: Any, out: list[str]) -> None:
         child = child.next
 
 
+def _search_total(doc: Any) -> int | None:
+    """Read the total offer count from the "Pracovne ponuky za" filter panel.
+
+    The panel lists the offers matching the query per recency bucket, e.g.
+    ``1 mesiac <span>5 283</span>`` (``count_days=31``). Verified against a
+    full page-by-page crawl: this equals the real number of result rows
+    (last page filled exactly, the page after it empty), off by at most one
+    due to live churn. Returns ``None`` when the panel is not rendered.
+    """
+    for link in doc.css(".context-links-list a"):
+        href = link.attributes.get("href") or ""
+        if "count_days=31" not in href:
+            continue
+        span = link.css_first("span")
+        if span is None:
+            return None
+        digits = re.sub(r"\D", "", span.text(strip=True) or "")
+        return int(digits) if digits else None
+    return None
+
+
 def _overall_info_value(main: Any, label: str) -> str | None:
     """Read a value from the Slovak meta block ``.overall-info``.
 
@@ -278,13 +299,15 @@ class Profesia:
         region_id: str | None = None,
         radius_km: int | None = None,
         page: int = 1,
-    ) -> list[Offer]:
+    ) -> tuple[list[Offer], int | None]:
         """Search jobs, optionally scoped to one location.
 
         Pass a ``region_id`` (from :meth:`suggest_location`) to scope the
         search; omit it for a site-wide search. ``radius_km`` only applies
-        with a location. Returns the offers on the requested page (the site
-        fixes the per-page count).
+        with a location. Returns ``(offers, total)``: the offers on the
+        requested page (the site fixes the per-page count) and the
+        approximate total number of offers in the search (``None`` when the
+        site does not render the count).
         """
         params = {
             "search_anywhere": keyword,
@@ -304,7 +327,7 @@ class Profesia:
             offer = self._parse_row(row)
             if offer is not None:
                 offers.append(offer)
-        return offers
+        return offers, _search_total(doc)
 
     def get_offer(self, url: str) -> OfferDetail:
         """Fetch one offer detail page and parse its content.
