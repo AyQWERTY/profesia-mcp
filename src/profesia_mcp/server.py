@@ -16,11 +16,17 @@ import json
 
 from fastmcp import FastMCP
 
-from .searcher import DEFAULT_RADIUS_KM, MAX_RADIUS_KM, Profesia
+from .searcher import (
+    DEFAULT_RADIUS_KM,
+    DEFAULT_SALARY_PERIOD,
+    MAX_RADIUS_KM,
+    SALARY_PERIODS,
+    Profesia,
+)
 
 mcp = FastMCP(
     name="profesia-mcp",
-    version="0.2.2",
+    version="0.2.3",
     instructions=(
         "Search jobs on profesia.sk (Slovak job board). Usually pass keyword "
         "plus a Slovak city to search_jobs directly; it resolves the city "
@@ -84,8 +90,10 @@ def suggest_location(city: str) -> str:
         "(resolved automatically) or a `region_id` from suggest_location "
         "to pin the exact spot; omit both for a site-wide search. "
         "`radius_km` only applies with a location and snaps to "
-        "0/10/20/30/60/100 (max 100). Returns a markdown table preceded by "
-        "the total number of offers matching the search."
+        "0/10/20/30/60/100 (max 100). `min_salary` keeps only offers paying at "
+        "least that much, per `salary_period` (`m` = per month, `h` = per hour, "
+        "default `m`); `salary_period` requires `min_salary`. Returns a markdown "
+        "table preceded by the total number of offers matching the search."
     ),
     annotations={
         "title": "Search job offers",
@@ -101,11 +109,25 @@ def search_jobs(
     region_id: str | None = None,
     radius_km: int = DEFAULT_RADIUS_KM,
     page: int = 1,
+    min_salary: int | None = None,
+    salary_period: str | None = None,
 ) -> str:
     if page < 1:
         raise ValueError("page must be a positive integer")
     if not 0 <= radius_km <= MAX_RADIUS_KM:
         raise ValueError(f"radius_km must be between 0 and {MAX_RADIUS_KM}")
+    period = DEFAULT_SALARY_PERIOD
+    if min_salary is not None:
+        if min_salary < 1:
+            raise ValueError("min_salary must be a positive integer")
+        if salary_period is not None:
+            period = salary_period
+            if period not in SALARY_PERIODS:
+                raise ValueError(
+                    f"salary_period must be one of {', '.join(SALARY_PERIODS)}"
+                )
+    elif salary_period is not None:
+        raise ValueError("salary_period requires min_salary")
 
     rid, where = region_id, None
     if city is not None:
@@ -119,6 +141,8 @@ def search_jobs(
         region_id=rid,
         radius_km=radius_km,
         page=page,
+        min_salary=min_salary,
+        salary_period=period,
     )
 
     if total is None:
@@ -133,10 +157,17 @@ def search_jobs(
         )
         tail = ".\n"
 
+    salary = (
+        ""
+        if min_salary is None
+        else f", min salary {min_salary} EUR/{SALARY_PERIODS[period]}"
+    )
     if where is None:
-        head = f"{count} for {keyword!r} (site-wide){tail}"
+        head = f"{count} for {keyword!r} (site-wide){salary}{tail}"
     else:
-        head = f"{count} for {keyword!r} near {where}, radius={radius_km}km{tail}"
+        head = (
+            f"{count} for {keyword!r} near {where}, radius={radius_km}km{salary}{tail}"
+        )
     return head + Profesia.to_markdown(offers)
 
 

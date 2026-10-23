@@ -14,6 +14,9 @@ Search model (verified against the live site)
   * Free-text matching uses the scalar ``search_anywhere`` param
     (space/comma = OR). It must NOT be sent as an array (that 500s).
   * Radius is one of the fixed tokens ``radius0/10/20/30/60/100``.
+  * A minimum salary is ``salary`` (any positive number) together with
+    ``salary_period`` of ``m`` (month) or ``h`` (hour). Without the period the
+    salary is silently ignored by the site.
   * Each row is ``li.list-row`` with ``.title`` / ``.employer`` /
     ``.job-location``. Label chips live in ``.label-group``: the
     ``icon money`` badge is the salary, every other badge is an
@@ -41,6 +44,11 @@ ALLOWED_HOSTS = frozenset({"www.profesia.sk", "profesia.sk"})
 AVAILABLE_RADIUS_KM = [0, 10, 20, 30, 60, 100]
 DEFAULT_RADIUS_KM = 30
 MAX_RADIUS_KM = max(AVAILABLE_RADIUS_KM)
+
+# The salary filter is a minimum threshold expressed per period; the site only
+# understands these two periods. The values double as the display labels.
+SALARY_PERIODS = {"m": "month", "h": "hour"}
+DEFAULT_SALARY_PERIOD = "m"
 
 
 @dataclass
@@ -299,15 +307,18 @@ class Profesia:
         region_id: str | None = None,
         radius_km: int | None = None,
         page: int = 1,
+        min_salary: int | None = None,
+        salary_period: str = DEFAULT_SALARY_PERIOD,
     ) -> tuple[list[Offer], int | None]:
         """Search jobs, optionally scoped to one location.
 
         Pass a ``region_id`` (from :meth:`suggest_location`) to scope the
         search; omit it for a site-wide search. ``radius_km`` only applies
-        with a location. Returns ``(offers, total)``: the offers on the
-        requested page (the site fixes the per-page count) and the
-        approximate total number of offers in the search (``None`` when the
-        site does not render the count).
+        with a location. ``min_salary`` keeps only offers paying at least that
+        much per ``salary_period`` (``m`` or ``h``); omit it for no salary
+        filter. Returns ``(offers, total)``: the offers on the requested page
+        (the site fixes the per-page count) and the approximate total number of
+        offers in the search (``None`` when the site does not render the count).
         """
         params = {
             "search_anywhere": keyword,
@@ -316,6 +327,9 @@ class Profesia:
         if region_id is not None:
             params["region_id"] = region_id
             params["radius"] = snap_radius(radius_km)
+        if min_salary is not None:
+            params["salary"] = min_salary
+            params["salary_period"] = salary_period
         resp = self._session.get(
             f"{BASE_URL}/praca/", params=params, timeout=self._timeout
         )

@@ -16,10 +16,12 @@ Free-text job search by keyword, with an optional location and radius. Returns a
 - `region_id` (string, optional): pin the exact location instead of resolving by name -- use an id from `suggest_location`. If both `city` and `region_id` are given, `city` wins.
 - `radius_km` (integer, optional, default `30`): applies only with a location; snapped to the closest of `0/10/20/30/60/100` (max 100).
 - `page` (integer, optional, default `1`): result page number.
+- `min_salary` (integer, optional): minimum salary in EUR, e.g. `1300`. Omit for no salary filter.
+- `salary_period` (string, optional): how `min_salary` is read -- `m` per month, `h` per hour; defaults to `m` when omitted. Passing it without `min_salary` is an error.
 
 **Output**
 
-A markdown table, one row per offer, preceded by a summary line (total number of offers matching the search, the location it was resolved to or "site-wide", radius, page).
+A markdown table, one row per offer, preceded by a summary line (total number of offers matching the search, the location it was resolved to or "site-wide", radius, salary filter, page).
 
 | Column   | Example                                                  |
 | -------- | -------------------------------------------------------- |
