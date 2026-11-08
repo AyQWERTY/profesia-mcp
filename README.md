@@ -18,10 +18,11 @@ Free-text job search by keyword, with an optional location and radius. Returns a
 - `page` (integer, optional, default `1`): result page number.
 - `min_salary` (integer, optional): minimum salary in EUR, e.g. `1300`. Omit for no salary filter.
 - `salary_period` (string, optional): how `min_salary` is read -- `m` per month, `h` per hour; defaults to `m` when omitted. Passing it without `min_salary` is an error.
+- `work_mode` (string, optional): where the work is done -- `remote` (from home only), `onsite` (at the workplace only), `hybrid` (possibly partly from home). Omit for no filter.
 
 **Output**
 
-A markdown table, one row per offer, preceded by a summary line (total number of offers matching the search, the location it was resolved to or "site-wide", radius, salary filter, page).
+A markdown table, one row per offer, preceded by a summary line (total number of offers matching the search, the location it was resolved to or "site-wide", radius, salary filter, work mode, page).
 
 | Column   | Example                                                  |
 | -------- | -------------------------------------------------------- |

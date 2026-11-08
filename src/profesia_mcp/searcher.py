@@ -17,6 +17,9 @@ Search model (verified against the live site)
   * A minimum salary is ``salary`` (any positive number) together with
     ``salary_period`` of ``m`` (month) or ``h`` (hour). Without the period the
     salary is silently ignored by the site.
+  * The work-location filter is ``remote_work``: ``0`` on site only, ``1``
+    from home only, ``2`` possibly partly from home (the three buckets in the
+    left-hand "Práca z domu" panel).
   * Each row is ``li.list-row`` with ``.title`` / ``.employer`` /
     ``.job-location``. Label chips live in ``.label-group``: the
     ``icon money`` badge is the salary, every other badge is an
@@ -49,6 +52,10 @@ MAX_RADIUS_KM = max(AVAILABLE_RADIUS_KM)
 # understands these two periods. The values double as the display labels.
 SALARY_PERIODS = {"m": "month", "h": "hour"}
 DEFAULT_SALARY_PERIOD = "m"
+
+# The three work-location buckets the site offers, keyed by the name the caller
+# uses; the values are the ``remote_work`` codes.
+WORK_MODES = {"onsite": "0", "remote": "1", "hybrid": "2"}
 
 
 @dataclass
@@ -309,6 +316,7 @@ class Profesia:
         page: int = 1,
         min_salary: int | None = None,
         salary_period: str = DEFAULT_SALARY_PERIOD,
+        work_mode: str | None = None,
     ) -> tuple[list[Offer], int | None]:
         """Search jobs, optionally scoped to one location.
 
@@ -316,7 +324,9 @@ class Profesia:
         search; omit it for a site-wide search. ``radius_km`` only applies
         with a location. ``min_salary`` keeps only offers paying at least that
         much per ``salary_period`` (``m`` or ``h``); omit it for no salary
-        filter. Returns ``(offers, total)``: the offers on the requested page
+        filter. ``work_mode`` (``onsite``, ``remote`` or ``hybrid``) keeps only
+        offers in that work-location bucket; omit it for no filter. Returns
+        ``(offers, total)``: the offers on the requested page
         (the site fixes the per-page count) and the approximate total number of
         offers in the search (``None`` when the site does not render the count).
         """
@@ -330,6 +340,8 @@ class Profesia:
         if min_salary is not None:
             params["salary"] = min_salary
             params["salary_period"] = salary_period
+        if work_mode is not None:
+            params["remote_work"] = WORK_MODES[work_mode]
         resp = self._session.get(
             f"{BASE_URL}/praca/", params=params, timeout=self._timeout
         )

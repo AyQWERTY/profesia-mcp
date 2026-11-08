@@ -21,12 +21,13 @@ from .searcher import (
     DEFAULT_SALARY_PERIOD,
     MAX_RADIUS_KM,
     SALARY_PERIODS,
+    WORK_MODES,
     Profesia,
 )
 
 mcp = FastMCP(
     name="profesia-mcp",
-    version="0.2.3",
+    version="0.2.4",
     instructions=(
         "Search jobs on profesia.sk (Slovak job board). Usually pass keyword "
         "plus a Slovak city to search_jobs directly; it resolves the city "
@@ -92,7 +93,10 @@ def suggest_location(city: str) -> str:
         "`radius_km` only applies with a location and snaps to "
         "0/10/20/30/60/100 (max 100). `min_salary` keeps only offers paying at "
         "least that much, per `salary_period` (`m` = per month, `h` = per hour, "
-        "default `m`); `salary_period` requires `min_salary`. Returns a markdown "
+        "default `m`); `salary_period` requires `min_salary`. `work_mode` limits "
+        "the offers by where the work is done: `remote` (from home only), "
+        "`onsite` (at the workplace only) or `hybrid` (possibly partly from "
+        "home); omit it for no filter. Returns a markdown "
         "table preceded by the total number of offers matching the search."
     ),
     annotations={
@@ -111,6 +115,7 @@ def search_jobs(
     page: int = 1,
     min_salary: int | None = None,
     salary_period: str | None = None,
+    work_mode: str | None = None,
 ) -> str:
     if page < 1:
         raise ValueError("page must be a positive integer")
@@ -128,6 +133,8 @@ def search_jobs(
                 )
     elif salary_period is not None:
         raise ValueError("salary_period requires min_salary")
+    if work_mode is not None and work_mode not in WORK_MODES:
+        raise ValueError(f"work_mode must be one of {', '.join(WORK_MODES)}")
 
     rid, where = region_id, None
     if city is not None:
@@ -143,6 +150,7 @@ def search_jobs(
         page=page,
         min_salary=min_salary,
         salary_period=period,
+        work_mode=work_mode,
     )
 
     if total is None:
@@ -162,11 +170,13 @@ def search_jobs(
         if min_salary is None
         else f", min salary {min_salary} EUR/{SALARY_PERIODS[period]}"
     )
+    work = "" if work_mode is None else f", work mode {work_mode}"
     if where is None:
-        head = f"{count} for {keyword!r} (site-wide){salary}{tail}"
+        head = f"{count} for {keyword!r} (site-wide){salary}{work}{tail}"
     else:
         head = (
-            f"{count} for {keyword!r} near {where}, radius={radius_km}km{salary}{tail}"
+            f"{count} for {keyword!r} near {where}, radius={radius_km}km"
+            f"{salary}{work}{tail}"
         )
     return head + Profesia.to_markdown(offers)
 
