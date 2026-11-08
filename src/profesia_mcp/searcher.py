@@ -310,7 +310,7 @@ class Profesia:
 
     def search(
         self,
-        keyword: str,
+        keyword: str | None = None,
         region_id: str | None = None,
         radius_km: int | None = None,
         page: int = 1,
@@ -319,6 +319,9 @@ class Profesia:
         work_mode: str | None = None,
     ) -> tuple[list[Offer], int | None]:
         """Search jobs, optionally scoped to one location.
+
+        ``keyword`` is optional; without it the search is just the other
+        filters, the same as opening a plain listing page on the site.
 
         Pass a ``region_id`` (from :meth:`suggest_location`) to scope the
         search; omit it for a site-wide search. ``radius_km`` only applies
@@ -330,10 +333,9 @@ class Profesia:
         (the site fixes the per-page count) and the approximate total number of
         offers in the search (``None`` when the site does not render the count).
         """
-        params = {
-            "search_anywhere": keyword,
-            "page_num": page,
-        }
+        params: dict[str, Any] = {"page_num": page}
+        if keyword:
+            params["search_anywhere"] = keyword
         if region_id is not None:
             params["region_id"] = region_id
             params["radius"] = snap_radius(radius_km)

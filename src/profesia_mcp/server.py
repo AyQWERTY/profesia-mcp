@@ -86,7 +86,8 @@ def suggest_location(city: str) -> str:
 
 @mcp.tool(
     description=(
-        "Search profesia.sk jobs. Keyword accepts space or comma for OR "
+        "Search profesia.sk jobs. Keyword is optional -- omit it to list "
+        "offers matching the other filters. Keyword accepts space or comma for "
         "matches. Location is optional: pass a Slovak place `city` "
         "(resolved automatically) or a `region_id` from suggest_location "
         "to pin the exact spot; omit both for a site-wide search. "
@@ -108,7 +109,7 @@ def suggest_location(city: str) -> str:
     },
 )
 def search_jobs(
-    keyword: str,
+    keyword: str | None = None,
     city: str | None = None,
     region_id: str | None = None,
     radius_km: int = DEFAULT_RADIUS_KM,
@@ -171,13 +172,11 @@ def search_jobs(
         else f", min salary {min_salary} EUR/{SALARY_PERIODS[period]}"
     )
     work = "" if work_mode is None else f", work mode {work_mode}"
+    term = "" if not keyword else f" for {keyword!r}"
     if where is None:
-        head = f"{count} for {keyword!r} (site-wide){salary}{work}{tail}"
+        head = f"{count}{term} (site-wide){salary}{work}{tail}"
     else:
-        head = (
-            f"{count} for {keyword!r} near {where}, radius={radius_km}km"
-            f"{salary}{work}{tail}"
-        )
+        head = f"{count}{term} near {where}, radius={radius_km}km{salary}{work}{tail}"
     return head + Profesia.to_markdown(offers)
 
 

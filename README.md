@@ -7,11 +7,11 @@ MCP server exposing job search on [profesia.sk](https://www.profesia.sk/) (Slova
 <details>
 <summary><code>search_jobs</code></summary>
 
-Free-text job search by keyword, with an optional location and radius. Returns a markdown table.
+Free-text job search by keyword (optional), with an optional location and radius. Returns a markdown table.
 
 **Inputs**
 
-- `keyword` (string, required): free-text term. Space or comma = OR (e.g. `programátor, kurier`).
+- `keyword` (string, optional): free-text term. Space or comma = OR (e.g. `programátor, kurier`). Omit it to list offers matching only the other filters.
 - `city` (string, optional): Slovak place name, resolved automatically (e.g. `Bratislava`, `Košice`). Omit for a site-wide search. When a name is ambiguous, call `suggest_location` first and pass the exact name here.
 - `region_id` (string, optional): pin the exact location instead of resolving by name -- use an id from `suggest_location`. If both `city` and `region_id` are given, `city` wins.
 - `radius_km` (integer, optional, default `30`): applies only with a location; snapped to the closest of `0/10/20/30/60/100` (max 100).
